@@ -16,9 +16,6 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 
-#define DATA_FOLDER "/home/vincy/extended/research/data/htc414-2/"
-#define RESULT_FOLDER DATA_FOLDER"result/" //"/home/vincy/research/data/balltest/result/"
-
 using namespace std;
 
 static inline void help(char* progName)

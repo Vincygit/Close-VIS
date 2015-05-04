@@ -11,10 +11,6 @@ using namespace std;
 using namespace cv;
 
 namespace ps {
-Calibrator::Calibrator() {
-	// TODO Auto-generated constructor stub
-	//DebugCounter = 1;
-}
 
 Calibrator::~Calibrator() {
 	// TODO Auto-generated destructor stub
@@ -46,14 +42,14 @@ Calibrator::~Calibrator() {
 //			if(highMask.at<uchar>(r, c) == 255)
 //			{
 //				float sum = 0;
-//				for(int i = r - HIGHLIGHTS_RADIUS/2; i <= r + HIGHLIGHTS_RADIUS/2; i++)
+//				for(int i = r - param.highLightRaduis/2; i <= r + param.highLightRaduis/2; i++)
 //				{
-//					for(int j = c - HIGHLIGHTS_RADIUS/2; j <= c + HIGHLIGHTS_RADIUS/2; j++)
+//					for(int j = c - param.highLightRaduis/2; j <= c + param.highLightRaduis/2; j++)
 //					{
 //						sum += grayimg.at<uchar>(i, j);
 //					}
 //				}
-//				candidates.push_back(Vec3i(r,c,sum/(HIGHLIGHTS_RADIUS*HIGHLIGHTS_RADIUS)));
+//				candidates.push_back(Vec3i(r,c,sum/(param.highLightRaduis*param.highLightRaduis)));
 //			}
 //		}
 //	}
@@ -122,7 +118,7 @@ int Calibrator::VcalculateHighligtWithin(const Mat &grayimg, const Mat& highMask
 			// One pass
 			if(highMask.at<uchar>(r, c) == 255)
 			{
-				if(grayimg.at<uchar>(r, c) > HIGHLIGHT_THRESHOLD)
+				if(grayimg.at<uchar>(r, c) > param.highLightsThreshold)
 				{
 					xIdx.push_back(r);
 					yIdx.push_back(c);
@@ -170,23 +166,23 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	// we can pick them up directly.
 	// TODO:: use a color ball to achieve the same thing.
 	dlights.clear(); // point dimension in matrix order
-	for( int h = height/CenterParam; h < height*(CenterParam-1)/CenterParam; h++)
+	for( int h = height/param.centerParam; h < height*(param.centerParam-1)/param.centerParam; h++)
 	{
-		for( int w = width/CenterParam; w < width*(CenterParam-1)/CenterParam; w++)
+		for( int w = width/param.centerParam; w < width*(param.centerParam-1)/param.centerParam; w++)
 		{
 			//			if( img.at<uchar>(h, w) < lthreshold)
 			//			{
 			//				dlights.push_back( Vec2i(h, w));
 			//			}
 			int sum = 0;
-			for(int i = h - HIGHLIGHTS_RADIUS/2; i <= h + HIGHLIGHTS_RADIUS/2; i++)
+			for(int i = h - param.highLightRaduis/2; i <= h + param.highLightRaduis/2; i++)
 			{
-				for(int j = w - HIGHLIGHTS_RADIUS/2; j <= w + HIGHLIGHTS_RADIUS/2; j++)
+				for(int j = w - param.highLightRaduis/2; j <= w + param.highLightRaduis/2; j++)
 				{
 					sum += img.at<uchar>(i, j);
 				}
 			}
-			if( sum < lthreshold * (HIGHLIGHTS_RADIUS*HIGHLIGHTS_RADIUS))
+			if( sum < lthreshold * (param.highLightRaduis*param.highLightRaduis))
 			{
 				dlights.push_back( Vec2i(h, w));
 			}
@@ -205,7 +201,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	}
 
 	char resbuf[100];
-	sprintf(resbuf,RESULT_FOLDER"darklights%d.jpg", DebugCounter);
+	sprintf(resbuf, "%sdarklights%d.jpg", param.resultFolder, DebugCounter);
 	imwrite(resbuf, markers);
 
 	// find the contour by using marker
@@ -243,7 +239,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	drawContours( drawing, contours, (int)idx, Scalar(1), -1, 8, hierarchy, INT_MAX);
 	cout<< "Running watershed segmentation..." <<endl;
 
-	cv::rectangle(drawing,cv::Point(drawing.cols/CenterParam,drawing.rows/CenterParam), cv::Point(drawing.cols/CenterParam*(CenterParam-1), drawing.rows/CenterParam*(CenterParam-1)),cv::Scalar(2),FittedCircleThickness);
+	cv::rectangle(drawing,cv::Point(drawing.cols/param.centerParam,drawing.rows/param.centerParam), cv::Point(drawing.cols/param.centerParam*(param.centerParam-1), drawing.rows/param.centerParam*(param.centerParam-1)),cv::Scalar(2),FittedCircleThickness);
 	// use watershed
 	watershed(colorImg, drawing);
 
@@ -262,7 +258,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 				wshed.at<uchar>(i,j) = 255;
 		}
 
-	sprintf(resbuf,RESULT_FOLDER"watershed%d.jpg", DebugCounter);
+	sprintf(resbuf, "%swatershed%d.jpg", param.resultFolder, DebugCounter);
 	imwrite(resbuf, wshed);
 
 	// after the first segmentation, we calculate our bright center.
@@ -274,9 +270,9 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 
 	// pickup the candidate points used to fit the circle
 	vector<Vec2i> candidates;
-	for( int i=wshed.rows/CenterParam;i<wshed.rows*(CenterParam-1)/CenterParam;i++)
+	for( int i=wshed.rows/param.centerParam;i<wshed.rows*(param.centerParam-1)/param.centerParam;i++)
 	{
-		for(int j=wshed.cols/CenterParam;j<wshed.cols*(CenterParam-1)/CenterParam;j++)
+		for(int j=wshed.cols/param.centerParam;j<wshed.cols*(param.centerParam-1)/param.centerParam;j++)
 		{
 			if(wshed.at<uchar>(i, j) == 0)
 			{
@@ -288,16 +284,16 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	// TODO: eliminate the use of global variable
 	std::sort(candidates.begin(), candidates.end(), ps::Calibrator::sortByDistance(highlight));
 	Mat circle_margin = Mat::zeros( markers.size(), CV_8U );
-	for(unsigned i = 0; i < FIT_CANDIDATES && i < candidates.size(); i++)
+	for(int i = 0; i < param.fitCandidateNum && i < candidates.size(); i++)
 	{
 		circle_margin.at<uchar>(candidates[i][0], candidates[i][1]) = 255;
 	}
 
-	sprintf(resbuf,RESULT_FOLDER"circle_margin%d.jpg", DebugCounter);
+	sprintf(resbuf, "%scircle_margin%d.jpg", param.resultFolder, DebugCounter);
 	imwrite(resbuf, circle_margin);
 
-	if(candidates.size() > FIT_CANDIDATES)
-		candidates.resize(FIT_CANDIDATES);
+	if(candidates.size() > (unsigned)param.fitCandidateNum)
+		candidates.resize(param.fitCandidateNum);
 
 #ifdef HOUGHTRANS
 	// use hough transform
@@ -363,7 +359,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	circle( colorImg, Point(center[1], center[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
 	circle( colorImg, Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
 
-	sprintf(resbuf,RESULT_FOLDER"result%d.jpg", DebugCounter++);
+	sprintf(resbuf, "%sresult%d.jpg", param.resultFolder, DebugCounter++);
 	imwrite(resbuf, colorImg);
 
 	cout<< "Circle fitted, " << endl;
@@ -429,7 +425,7 @@ int Calibrator::saveCalibrationData(const string filename, const Vec3f* lightsou
 {
 	ofstream of(filename.c_str());
 
-	for(unsigned i = 0; i < numImages; i++)
+	for(unsigned i = 0; i < numLights; i++)
 	{
 		of << lightsource[i][0] <<" "<<lightsource[i][1] <<" "<<lightsource[i][2] <<" " << "\n";
 		cout << lightsource[i][0] <<" "<<lightsource[i][1] <<" "<<lightsource[i][2] <<" " << "\n";
@@ -446,7 +442,7 @@ int Calibrator::loadCalibrationData(const string filename, Vec3f* lightsource)
 	//		cout <<buf<<endl;
 	//	}
 
-	for(unsigned i = 0; i < numImages; i++)
+	for(unsigned i = 0; i < numLights; i++)
 	{
 		is >> lightsource[i][0] >> lightsource[i][1]>> lightsource[i][2];
 		cout << "Loading Data:" << endl;
@@ -456,20 +452,21 @@ int Calibrator::loadCalibrationData(const string filename, Vec3f* lightsource)
 	return 1;
 }
 
-int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
+int Calibrator::calibrateLightsource(const string filename, unsigned numLights)
 {
 	/**
 	 * Version 1.0:
 	 * The circle will be the one that with the smallest fitting error.
 	 * */
-	float ferrors[numImages], minError = FLT_MAX; // note that the information stored in here is in matrix format
-	Vec3f lightsource[numImages], ball;
-	Mat filteredimg[numImages];
+	float ferrors[numLights], minError = FLT_MAX; // note that the information stored in here is in matrix format
+	Vec3f lightsource[numLights], ball;
+	Mat filteredimg[numLights];
 	unsigned f;
 	char buffer[100];
-	for( f = 0; f < numImages; f++)
+	for( f = 0; f < numLights; f++)
 	{
-		sprintf(buffer, DATA_FOLDER"IMG_%d.JPG", (f+1));
+		sprintf(buffer, "%s%s1_%d%s", param.dataFolder, param.calibPrefix,(f+1),param.imgSuffix);
+		cout<<buffer<<endl;
 		// load gray image is enough
 		colorImg = imread(buffer);
 		if( colorImg.data == NULL) {
@@ -478,11 +475,12 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 		}
 		Mat grayImg, filImag;
 		cvtColor(colorImg, grayImg,CV_BGR2GRAY);
-		imwrite( RESULT_FOLDER"gray.jpg", grayImg );
+
+		sprintf(buffer, "%sgray_%d.jpg", param.resultFolder, (f+1));
+		imwrite( buffer, grayImg );
 
 		filImag = grayImg;
 		grayImg.convertTo(filteredimg[f], CV_32F);
-		//		imwrite( RESULT_FOLDER"blur.jpg", filImag );
 
 		// Step 2: locate the ball
 		Vec2f center, highlight;
@@ -507,10 +505,10 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 
 	cout<<"****Calibrated Real Center is:"<<ball<<endl;
 
-	for( f = 0; f < numImages; f++)
+	for( f = 0; f < numLights; f++)
 	{
 		// second pass. filter out the wrong cases
-		if(abs(minError - ferrors[f]) > CALIBRATE_FIT_ERROR_DIF_THRESHOLD)
+		if(abs(minError - ferrors[f]) > param.fitErrorThreshold)
 		{
 			// refine the highlight point
 			Vec2f highlight;
@@ -526,7 +524,7 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 			circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
 
 			char resbuf[100];
-			sprintf(resbuf,RESULT_FOLDER"result%d.jpg", f + 1);
+			sprintf(resbuf, "%sresult%d.jpg", param.resultFolder, f + 1);
 			imwrite(resbuf, filteredimg[f]);
 		}
 	}
@@ -542,12 +540,12 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
  * * This algorithm is used in neal range PS model.
  * [An improved photometric stereo through distance estimation and light
 	vector optimization from diffused maxima region]*/
-int Calibrator::estimateLightPositions(const string filename, unsigned numImages)
+int Calibrator::estimateLightPositions(const string filename, unsigned numLights)
 {
-	float ferrors[numImages], minError = FLT_MAX;
+	float ferrors[numLights], minError = FLT_MAX;
 	// note that the information stored in here is in matrix format
 	Vec3f ball;
-	Mat filteredimg[numImages];
+	Mat filteredimg[numLights];
 	unsigned f;
 	char buffer[100];
 
@@ -557,13 +555,13 @@ int Calibrator::estimateLightPositions(const string filename, unsigned numImages
 	// 2. Highlight point in each image.
 	// TODO: I have several ideas of dealing with this.
 	// I think it's better to do in the complicate way. Because it allows us to deal with noise better.
-	lightInfo lightVecs[numImages];
+	lightInfo lightVecs[numLights];
 	for(int i = 0; i < 2; i++)
 	{
-		for( f = 0; f < numImages; f++)
+		for( f = 0; f < numLights; f++)
 		{
 			// Calibration_Image_i_f
-			sprintf(buffer, DATA_FOLDER"C_IMG_%d_%d.JPG",(i+1), (f+1));
+			sprintf(buffer, "%s%s%d_%d%s",param.dataFolder, param.calibPrefix, (i+1), (f+1), param.imgSuffix);
 			// load gray image is enough
 			colorImg = imread(buffer);
 			if( colorImg.data == NULL)
@@ -604,10 +602,10 @@ int Calibrator::estimateLightPositions(const string filename, unsigned numImages
 
 		cout<<"****Calibrated Real Center is:"<<ball<<endl;
 
-		for( f = 0; f < numImages; f++)
+		for( f = 0; f < numLights; f++)
 		{
 			// second pass. filter out the wrong cases
-			if(abs(minError - ferrors[f]) > CALIBRATE_FIT_ERROR_DIF_THRESHOLD)
+			if(abs(minError - ferrors[f]) > param.fitErrorThreshold)
 			{
 				// refine the highlight point
 				Vec2f highlight;
@@ -624,23 +622,23 @@ int Calibrator::estimateLightPositions(const string filename, unsigned numImages
 				circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
 
 				char resbuf[100];
-				sprintf(resbuf,RESULT_FOLDER"result%d.jpg", f + 1);
+				sprintf(resbuf, "%sresult%d.jpg", param.resultFolder, f + 1);
 				imwrite(resbuf, filteredimg[f]);
 			}
 		}
 	}
 
-	Vec3f lightPositions[numImages];
-	estimateLightPosition(lightVecs, lightPositions, numImages);
+	Vec3f lightPositions[numLights];
+	estimateLightPosition(lightVecs, lightPositions, numLights);
 	saveCalibrationData(filename, lightPositions);
 
 	return 1;
 }
 
-int Calibrator::estimateLightPosition(lightInfo* lightVecs, Vec3f* lightPositions, int numImages)
+int Calibrator::estimateLightPosition(lightInfo* lightVecs, Vec3f* lightPositions, int numLights)
 {
 	cout<< "estimating light positions according for each light source."<< endl;
-	for(int i = 0; i < numImages; i++)
+	for(int i = 0; i < numLights; i++)
 	{
 		// for each source:
 		Vec3f *L = lightVecs[i].L;

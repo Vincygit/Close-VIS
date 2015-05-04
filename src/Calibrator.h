@@ -31,27 +31,55 @@ namespace ps {
 #define HIGHLIGHT_COUNT 500
 #define HIGHLIGHT_RATIO 0.5
 
-#define CALIBRATE_FIT_ERROR_DIF_THRESHOLD 6
-#define HIGHLIGHTS_RADIUS 1
+/**
+ * below are default parameters.
+ * */
 #define DARKLIGHTS_THRESHOLD 30
-#define FIT_CANDIDATES 150
-#define HIGHLIGHT_THRESHOLD 240
-#define CenterParam 9
+//#define CALIBRATE_FIT_ERROR_DIF_THRESHOLD 6
+//#define HIGHLIGHTS_RADIUS 1
+//#define FIT_CANDIDATES 150
+//#define HIGHLIGHT_THRESHOLD 240
+//#define CenterParam 9
 
 typedef struct CalibParam {
+	const char* dataFolder;
+	const char* resultFolder;
+	const char* calibPrefix;
+	const char* dataImgPrefix;
+	const char* imgSuffix;
+
+	int numLights;
+	int highLightsThreshold;
+	int darkLightsThreshold;
+	int highLightRaduis;
+	int fitCandidateNum;
+	int fitErrorThreshold;
+	int centerParam;
+
+	CalibParam() {
+		dataFolder = NULL;
+		resultFolder = NULL;
+		numLights = -1;
+		fitErrorThreshold = 5;
+		highLightRaduis = 1;
+		darkLightsThreshold = 30;
+		fitCandidateNum = 150;
+		highLightsThreshold = 240;
+		centerParam = 9;
+	}
 } CalibParam;
 
 class Calibrator {
 public:
-	Calibrator();
-	Calibrator(unsigned numImages): numImages(numImages){};
+	Calibrator(unsigned numLights): numLights(numLights){};
+	Calibrator(CalibParam param): param(param){ numLights = param.numLights;};
 
 public:
 	float extractHighLight( const Mat &img, float &radius, Vec2f& center, Vec2f& highlight, int lthreshold = DARKLIGHTS_THRESHOLD );
 	int loadCalibrationData(const string filename, Vec3f* lightsource);
 	int saveCalibrationData(const string filename, const Vec3f* lightsource);
-	int calibrateLightsource(const string filename, unsigned numImages);
-	int estimateLightPositions(const string filename, unsigned numImages);
+	int calibrateLightsource(const string filename, unsigned numLights);
+	int estimateLightPositions(const string filename, unsigned numLights);
 
 	virtual ~Calibrator();
 
@@ -64,7 +92,8 @@ private:
 		Vec3f L[2], P[2];
 	} lightInfo;
 
-	unsigned numImages;
+	CalibParam param;
+	unsigned numLights;
 	vector<Vec2i> hlights, dlights;
 	Mat colorImg, watermask;
 	int DebugCounter = 1;
@@ -86,14 +115,14 @@ private:
 		bool operator()( const Vec2i &v1, const Vec2i &v2)
 		{
 			float dx = v1[0] - center[0];
-					float dy = v1[1] - center[1];
-					float dis1 = dx*dx + dy*dy;
+			float dy = v1[1] - center[1];
+			float dis1 = dx*dx + dy*dy;
 
-					dx = v2[0] - center[0];
-					dy = v2[1] - center[1];
-					float dis2 = dx*dx + dy*dy;
+			dx = v2[0] - center[0];
+			dy = v2[1] - center[1];
+			float dis2 = dx*dx + dy*dy;
 
-					return dis1 < dis2; // ascending sorting
+			return dis1 < dis2; // ascending sorting
 		};
 
 	};

@@ -515,7 +515,7 @@ int PhotometricStereoSolver::depthFromGradient( const cv::Mat norm, cv::Mat& dep
 /**
  * Step 7: dump results.
  * */
-int PhotometricStereoSolver::dumpResults(int format,const string filename, const cv::Mat& depthMap)
+int PhotometricStereoSolver::dumpResults(string format,const string filename, const cv::Mat& depthMap)
 {
 	//TODO: how many formats can we choose ?
 
@@ -547,23 +547,23 @@ int PhotometricStereoSolver::dumpResults(int format,const string filename, const
 	{
 		for(int w = 0; w < matCols; w++)
 		{
-			if(format == 1)
+			if(format == "obj")
 			{
 				// obj format
 				of << "v "<<(h + 1) << " " << (w + 1) << " " << scaledMap.at<float>(h, w) << "\n";
-			} else if(format == 2) {
+			} else if(format == "matrix") {
 				of << depthMap.at<float>(h, w)<<" ";
 			}
 		}
 
-		if(format == 2)
+		if(format == "matrix")
 		{
 			of  << "\n";
 		}
 	}
 
 
-	if(format == 1)
+	if(format == "obj")
 	{
 		for(int h = 0; h < matRows; h++)
 		{

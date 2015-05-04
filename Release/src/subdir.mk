@@ -6,7 +6,7 @@
 CPP_SRCS += \
 ../src/Calibrator.cpp \
 ../src/ConfReader.cpp \
-../src/INITest.cpp \
+../src/ConfReaderTest.cpp \
 ../src/PhotometricStereoSolver.cpp \
 ../src/Utils.cpp \
 ../src/main.cpp 
@@ -14,7 +14,7 @@ CPP_SRCS += \
 OBJS += \
 ./src/Calibrator.o \
 ./src/ConfReader.o \
-./src/INITest.o \
+./src/ConfReaderTest.o \
 ./src/PhotometricStereoSolver.o \
 ./src/Utils.o \
 ./src/main.o 
@@ -22,7 +22,7 @@ OBJS += \
 CPP_DEPS += \
 ./src/Calibrator.d \
 ./src/ConfReader.d \
-./src/INITest.d \
+./src/ConfReaderTest.d \
 ./src/PhotometricStereoSolver.d \
 ./src/Utils.d \
 ./src/main.d 

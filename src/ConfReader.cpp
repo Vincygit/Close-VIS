@@ -67,7 +67,7 @@ ConfReader::ConfReader(void) {
 	// default
 }
 
-ConfReader::ConfReader(const string conf_file) {
+ConfReader::ConfReader( string conf_file) {
 	// default
 	this->filePath = string(conf_file);
 }
@@ -128,6 +128,8 @@ int ConfReader::GetParamValue(const string &key, string &valueBuffer) {
  */
 int ConfReader::readFile(const string &filename) {
 	ifstream infile(filename.c_str());
+	if(!infile.is_open())
+		cout<<"Cannot find file:" << filename << endl;
 	string buffer;
 	while (getline(infile, buffer)) {
 		parseContentLine(buffer);
@@ -169,7 +171,7 @@ int ConfReader::parseContentLine(string &contentLine) {
 	string value = ltrim(contentLine.substr(equalPos + 1, endPos));
 
 	paramMap.insert(std::make_pair(key, value));
-
+	cout<< "read: key=["<<key<<"], value=["<<value<<"]"<<endl;
 	return 0;
 }
 
@@ -194,7 +196,6 @@ int ConfReader::retrieveFilePath(string &filepath) {
 	}
 	temppath.append(INI_FILE_NAME);
 	 */
-
 	filepath = this->filePath;
 	return 0;
 }

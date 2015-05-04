@@ -30,7 +30,7 @@ public:
 public:
 	int processInputImages(cv::Mat* shadowMask, const cv::Mat* srcImages, float shadowThreshold = 0.1);
 	int applyPhotometricStereo(const cv::Mat* shadowMask, const cv::Mat* srcImages, const cv::Vec3f* srcLight, cv::Mat& albedo, cv::Mat& norm);
-	int dumpResults(int format,const string filename, const cv::Mat& depthMap);
+	int dumpResults(string format,const string filename, const cv::Mat& depthMap);
 	int depthFromGradient( const cv::Mat norm, cv::Mat& depthMap, int generateMode = 0);
 
 	int applyNearRangePS(cv::Mat& depthMap, const cv::Mat* shadowMask, const cv::Mat* srcImages, const cv::Vec3f* srcLight, cv::Mat& albedo, cv::Mat& norm, int Max_iter);

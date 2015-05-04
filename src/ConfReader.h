@@ -17,13 +17,13 @@ public:
 
 	static ConfReader &getInstance();	// to be used as singleton
     int GetParamValue(const string &key, string &value);
+    string filePath;
 
 private:
     int readFile(const string &filename);
     int retrieveFilePath(string &filepath);
     int parseContentLine(string &contentLine);
-    
-    string filePath;
+    void printter();
     map<string, string> paramMap;
 };
 

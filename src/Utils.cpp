@@ -6,7 +6,8 @@
  */
 
 #include "Utils.h"
-
+#include "opencv2/core/core.hpp"
+#include "opencv2/highgui/highgui.hpp"
 /**
  * split stream by using string stream
  * */
@@ -42,7 +43,6 @@ int rescaleImage(cv::Mat& img, int height, int width, int fixedRatio)
 {
 	int oriH = img.cols;
 	int oriW = img.rows;
-
 	if(fixedRatio) {
 		float nRatio = (float)height / (float) width;
 		float oRatio = (float)oriH / (float) oriW;
@@ -62,6 +62,11 @@ int rescaleImage(cv::Mat& img, int height, int width, int fixedRatio)
 		cout<< "fixed ratio scale, with new height:" <<height <<" and new width:"<< width <<endl;
 	else
 		cout<< "scale, with new height:" <<height <<" and new width:"<< width <<endl;
+//	cv::namedWindow( "Display window", cv::WINDOW_AUTOSIZE );// Create a window for display.
+//	//	imwrite( string(param.dataFolder + "albedo.jpg"), albedo );
+//
+//	cv::imshow("Display window", img);
+//	cv::waitKey();
 
 	cv::resize(img, img, cv::Size(height, width),0,0,CV_INTER_LINEAR);
 	return 1;
