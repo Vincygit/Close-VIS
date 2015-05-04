@@ -228,14 +228,9 @@ int PhotometricStereoSolver::applyNearRangePS(cv::Mat& depthMap, const cv::Mat* 
 				// for each pixel
 				for(int i = 0; i < numImages; i++)
 				{
-					// for each dimension
-					// FIXME
-					// FIXME
-					// FIXME
-					// FIXME
-					// shall we flip the position here ????
-					Vec3f pxlLighting =  srcLight[i];//FIXME testing - Vec3f(h, w, round_counter == 1 ? 1 : depthMap.at<float>(h, w));
+					Vec3f pxlLighting =  srcLight[i] - Vec3f(h, w, round_counter == 1 ? 1 : depthMap.at<float>(h, w));
 					pxlLighting = pxlLighting / (pxlLighting[0]*pxlLighting[0] + pxlLighting[1]*pxlLighting[1] + pxlLighting[2]*pxlLighting[2]);
+					// for each dimension
 					for(int j = 0; j < 3; j++)
 						lightingMat.at<float>(i, j) = pxlLighting[j];
 
@@ -267,7 +262,7 @@ int PhotometricStereoSolver::applyNearRangePS(cv::Mat& depthMap, const cv::Mat* 
 		if(round_counter > 1)
 			depthMap.copyTo(preDepth);
 
-		depthFromGradient( norm, depthMap, 1);
+		depthFromGradient( norm, depthMap, 0);
 	}
 
 	/*******************************************/
@@ -286,8 +281,8 @@ void PhotometricStereoSolver::integrate( float *P,  float *Q,  float *Z, int wid
 		for(int j = 0; j < width; j++)
 		{
 			if ((i != 0) || (j != 0)) {
-				float v = sin((float)(i*2*M_PI/height));
-				float u = sin((float)(j*2*M_PI/width));
+				float u = sin((float)(i*2*M_PI/height));
+				float v = sin((float)(j*2*M_PI/width));
 				float uv = pow(u,2)+pow(v,2);
 				float d = uv + mu*(pow(u,4)+pow(v,4));
 				/* offset = (row * numCols * numChannels) + (col * numChannels) + channel */
@@ -302,25 +297,25 @@ void PhotometricStereoSolver::integrate( float *P,  float *Q,  float *Z, int wid
 	}
 }
 
-void PhotometricStereoSolver::Vintegrate( Mat &P,  Mat &Q,  Mat&Z, int width, int height, float mu)
-{
-	/* get current i,j position in image */
-	for(int i = 0; i < height; i++)
-	{
-		for(int j = 0; j < width; j++)
-		{
-			if ((i != 0) || (j != 0)) {
-				float v = sin((float)(i*2*M_PI/height));
-				float u = sin((float)(j*2*M_PI/width));
-				float uv = pow(u,2)+pow(v,2);
-				float d = uv + mu*(pow(u,4)+pow(v,4));
-				/* offset = (row * numCols * numChannels) + (col * numChannels) + channel */
-				Z.at<Vec2f>(i, j)[0] = ((u+mu*pow(u,3))*P.at<Vec2f>(i, j)[1]  + (v+mu*pow(v,3))*Q.at<Vec2f>(i, j)[1]) / d;
-				Z.at<Vec2f>(i, j)[1] = (-(u+mu*pow(u,3))*P.at<Vec2f>(i, j)[0] - (v+mu*pow(v,3))*Q.at<Vec2f>(i, j)[0]) / d;
-			}
-		}
-	}
-}
+//void PhotometricStereoSolver::Vintegrate( Mat &P,  Mat &Q,  Mat&Z, int width, int height, float mu)
+//{
+//	/* get current i,j position in image */
+//	for(int i = 0; i < height; i++)
+//	{
+//		for(int j = 0; j < width; j++)
+//		{
+//			if ((i != 0) || (j != 0)) {
+//				float v = sin((float)(i*2*M_PI/height));
+//				float u = sin((float)(j*2*M_PI/width));
+//				float uv = pow(u,2)+pow(v,2);
+//				float d = uv + mu*(pow(u,4)+pow(v,4));
+//				/* offset = (row * numCols * numChannels) + (col * numChannels) + channel */
+//				Z.at<Vec2f>(i, j)[0] = ((u+mu*pow(u,3))*P.at<Vec2f>(i, j)[1]  + (v+mu*pow(v,3))*Q.at<Vec2f>(i, j)[1]) / d;
+//				Z.at<Vec2f>(i, j)[1] = (-(u+mu*pow(u,3))*P.at<Vec2f>(i, j)[0] - (v+mu*pow(v,3))*Q.at<Vec2f>(i, j)[0]) / d;
+//			}
+//		}
+//	}
+//}
 
 cv::Mat PhotometricStereoSolver::getGlobalHeights(cv::Mat Pgrads, cv::Mat Qgrads)
 {
@@ -345,7 +340,11 @@ cv::Mat PhotometricStereoSolver::getGlobalHeights(cv::Mat Pgrads, cv::Mat Qgrads
 }
 
 
-// Now Port the matlab codes directly
+/**
+ * NOTE: This method is much better!
+ * Because we create a periodic matrix rather than the original one.
+ * By introducing period in during the DFT, the boudaries have much better performance.
+ * **/
 cv::Mat PhotometricStereoSolver::performFCAlgo(const cv::Mat&Pmat, const cv::Mat&Qmat, float lambda)
 {
 	int m = Pmat.rows << 1;
@@ -417,12 +416,9 @@ cv::Mat PhotometricStereoSolver::performFCAlgo(const cv::Mat&Pmat, const cv::Mat
 		{
 			if( i + j > 0)
 			{
-
-				float u = uMat.at<float>(i,j)/n;
-				float v = vMat.at<float>(i,j)/m;
-
-				//				float v = sin((float)(i*2*M_PI/n));
-				//				float u = sin((float)(j*2*M_PI/m));
+				// TODO: Note this change!!  we this is right!
+				float u = vMat.at<float>(i,j)/m;
+				float v = uMat.at<float>(i,j)/n;
 
 #ifdef APPLY_FC_ALGORITHM
 				double d = 2*M_PI*( pow(u, 2 ) + pow(v, 2 ) );
@@ -432,6 +428,14 @@ cv::Mat PhotometricStereoSolver::performFCAlgo(const cv::Mat&Pmat, const cv::Mat
 				double d = 2*M_PI*( pow( u, 2 ) + pow( v, 2 ) + lambda * (pow( u, 4 ) + pow( v, 4 )) );
 				Z.at<Vec2f>(i, j)[0] = ((u + lambda * pow(u,3))*P.at<Vec2f>(i,j)[1] + (v + lambda * pow(v,3))*Q.at<Vec2f>(i,j)[1]) / d;
 				Z.at<Vec2f>(i, j)[1] = -((u + lambda * pow(u,3))*P.at<Vec2f>(i,j)[0] + (v + lambda * pow(v,3))*Q.at<Vec2f>(i,j)[0]) / d;
+				//				float u = sin((float)(i*2*M_PI/m));
+				//				float v = sin((float)(j*2*M_PI/n));
+				//				float mu = 0.5;
+				//				float uv = pow(u,2)+pow(v,2);
+				//				float d = uv + mu*(pow(u,4)+pow(v,4));
+				//				/* offset = (row * numCols * numChannels) + (col * numChannels) + channel */
+				//				Z.at<Vec2f>(i, j)[0] = ((u+mu*pow(u,3))*P.at<Vec2f>(i, j)[1]  + (v+mu*pow(v,3))*Q.at<Vec2f>(i, j)[1]) / d;
+				//				Z.at<Vec2f>(i, j)[1] = (-(u+mu*pow(u,3))*P.at<Vec2f>(i, j)[0] - (v+mu*pow(v,3))*Q.at<Vec2f>(i, j)[0]) / d;
 #endif
 			}
 		}
@@ -520,7 +524,7 @@ int PhotometricStereoSolver::dumpResults(int format,const string filename, const
 
 	// re scale the depth map
 	Mat scaledMap(depthMap.size(), CV_32F);
-	double min = 9999.0, max=-9999.0;
+	double min = FLT_MAX, max=-FLT_MAX;
 	for(int h = 0; h < depthMap.rows; h++)
 	{
 		for(int w = 0; w < depthMap.cols; w++)

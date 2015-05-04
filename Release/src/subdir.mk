@@ -5,18 +5,24 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
 ../src/Calibrator.cpp \
+../src/ConfReader.cpp \
+../src/INITest.cpp \
 ../src/PhotometricStereoSolver.cpp \
 ../src/Utils.cpp \
 ../src/main.cpp 
 
 OBJS += \
 ./src/Calibrator.o \
+./src/ConfReader.o \
+./src/INITest.o \
 ./src/PhotometricStereoSolver.o \
 ./src/Utils.o \
 ./src/main.o 
 
 CPP_DEPS += \
 ./src/Calibrator.d \
+./src/ConfReader.d \
+./src/INITest.d \
 ./src/PhotometricStereoSolver.d \
 ./src/Utils.d \
 ./src/main.d 

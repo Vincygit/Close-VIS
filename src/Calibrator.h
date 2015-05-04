@@ -23,18 +23,23 @@ using namespace cv;
 
 namespace ps {
 
+#define MSE
+#define USE_WATERSHED
+#define FittedCircleThickness 3
+
+// deprecated.
+#define HIGHLIGHT_COUNT 500
+#define HIGHLIGHT_RATIO 0.5
+
 #define CALIBRATE_FIT_ERROR_DIF_THRESHOLD 6
 #define HIGHLIGHTS_RADIUS 1
 #define DARKLIGHTS_THRESHOLD 30
-#define USE_HIGHLIGHT 0
 #define FIT_CANDIDATES 150
-#define MSE
-#define USE_WATERSHED
-#define HIGHLIGHT_RATIO 0.5
 #define HIGHLIGHT_THRESHOLD 240
-#define HIGHLIGHT_COUNT 500
 #define CenterParam 9
-#define FittedCircleThickness 4
+
+typedef struct CalibParam {
+} CalibParam;
 
 class Calibrator {
 public:
@@ -46,10 +51,19 @@ public:
 	int loadCalibrationData(const string filename, Vec3f* lightsource);
 	int saveCalibrationData(const string filename, const Vec3f* lightsource);
 	int calibrateLightsource(const string filename, unsigned numImages);
+	int estimateLightPositions(const string filename, unsigned numImages);
 
 	virtual ~Calibrator();
 
 private:
+
+	typedef struct lightInfo
+	{
+		// L: incident direction vector
+		// P: highlight point on the surface
+		Vec3f L[2], P[2];
+	} lightInfo;
+
 	unsigned numImages;
 	vector<Vec2i> hlights, dlights;
 	Mat colorImg, watermask;
@@ -58,7 +72,9 @@ private:
 	int VcalculateHighligtWithin(const Mat &grayimg, const Mat& highMask, Vec2f & highlight);
 	int calculateHighligtWithin(const cv::Mat &grayimg, const cv::Mat& highMask, cv::Vec2f & highlight);
 	int calculateIncidentDir(const cv::Vec2f center, float radius, const cv::Vec2f& highlight, Vec3f& dir);
+	int calculateHighlightPos(const cv::Vec2f center, float radius, const cv::Vec2f& highlight, Vec3f& dir);
 	Vec3f getMedianPoint(const vector<Vec3f> pointsets);
+	int estimateLightPosition(lightInfo* temp, Vec3f* lightPositions, int);
 
 	/**
 	 * Sort the pixels according to its distance to the center

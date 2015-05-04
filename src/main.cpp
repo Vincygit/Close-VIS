@@ -20,7 +20,7 @@ using namespace ps;
 #define NUM_IMAGES 8
 #define SCALED_HEIGHT 1000
 
-int main(int argc, char ** argv)
+int amain(int argc, char ** argv)
 {
 	// 0: photometric stereo
 	// 1: calibration
@@ -68,6 +68,7 @@ int main(int argc, char ** argv)
 		caliber.loadCalibrationData(filename, lightsource);
 	} else if(mode == 1) {
 		caliber.calibrateLightsource(filename, NUM_IMAGES);
+//		caliber.estimateLightPositions(filename, NUM_IMAGES);
 		return 1;
 	}
 

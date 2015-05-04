@@ -34,76 +34,76 @@ Calibrator::~Calibrator() {
  * We calculate the most bright points within this mask, and then
  * set the highlight to be the median of all such points.
  * */
-int Calibrator::calculateHighligtWithin(const Mat &grayimg, const Mat& highMask, Vec2f & highlight)
-{
-	cout<< "calculateHighligtWithin.."<<endl;
-	Vector<Vec3i> candidates;
-	for(int r = 0; r < highMask.rows; r++)
-	{
-		for(int c = 0; c < highMask.cols; c++)
-		{
-			// One pass
-			if(highMask.at<uchar>(r, c) == 255)
-			{
-				float sum = 0;
-				for(int i = r - HIGHLIGHTS_RADIUS/2; i <= r + HIGHLIGHTS_RADIUS/2; i++)
-				{
-					for(int j = c - HIGHLIGHTS_RADIUS/2; j <= c + HIGHLIGHTS_RADIUS/2; j++)
-					{
-						sum += grayimg.at<uchar>(i, j);
-					}
-				}
-				candidates.push_back(Vec3i(r,c,sum/(HIGHLIGHTS_RADIUS*HIGHLIGHTS_RADIUS)));
-			}
-		}
-	}
-	// sort all the candidate points.
-	sort(candidates.begin(), candidates.end(), ps::Calibrator::sortByLuminance);
-
-	// now we pick real candidates.
-	// TODO: maybe we could calculate the gradients and pick up the point
-	// that has the biggest gradient and use its value as the threshold.
-	// but now i just do the easy job.
-	uchar brightThreshold = 0u;
-#ifdef USE_RATIO
-	brightThreshold = candidates[HIGHLIGHT_RATIO * candidates.size()][2];
-#else
-	if(candidates.size() <= 2 * HIGHLIGHT_COUNT)
-	{
-		brightThreshold = candidates[HIGHLIGHT_RATIO * candidates.size()][2];
-		cout << " Too few candidates, forced to  pick up ratio points" << endl;
-	} else {
-		// pick up the last point that is with such luminance
-		brightThreshold = candidates[HIGHLIGHT_COUNT][2];
-	}
-#endif
-	cout<< "calculating.."<<endl;
-	// second pass, collect all points that are bright enough as the real candidates
-	int Xcount = 0, Ycount = 0;
-	unsigned i;
-	Mat debugMask(grayimg.size(), CV_8U, Scalar(0));
-
-	for(i = 0; candidates[i][2] >= brightThreshold && i < candidates.size(); i++)
-	{
-		debugMask.at<uchar>(candidates[i][0], candidates[i][1]) = 255;
-		Xcount += candidates[i][0];
-		Ycount += candidates[i][1];
-	}
-
-	//TODO: calculate the median instead of mean.
-
-	if(i == 0 ) {
-		cout<< "*Error: no candidates detected.."<<endl;
-	}
-
-	highlight[0] = (float)Xcount / i;
-	highlight[1] = (float)Ycount / i;
-
-	char buffer[100];
-	sprintf(buffer, RESULT_FOLDER"debug_high_mask_%d.jpg", DebugCounter);
-	imwrite(buffer, debugMask);
-	return 1;
-}
+//int Calibrator::calculateHighligtWithin(const Mat &grayimg, const Mat& highMask, Vec2f & highlight)
+//{
+//	cout<< "calculateHighligtWithin.."<<endl;
+//	Vector<Vec3i> candidates;
+//	for(int r = 0; r < highMask.rows; r++)
+//	{
+//		for(int c = 0; c < highMask.cols; c++)
+//		{
+//			// One pass
+//			if(highMask.at<uchar>(r, c) == 255)
+//			{
+//				float sum = 0;
+//				for(int i = r - HIGHLIGHTS_RADIUS/2; i <= r + HIGHLIGHTS_RADIUS/2; i++)
+//				{
+//					for(int j = c - HIGHLIGHTS_RADIUS/2; j <= c + HIGHLIGHTS_RADIUS/2; j++)
+//					{
+//						sum += grayimg.at<uchar>(i, j);
+//					}
+//				}
+//				candidates.push_back(Vec3i(r,c,sum/(HIGHLIGHTS_RADIUS*HIGHLIGHTS_RADIUS)));
+//			}
+//		}
+//	}
+//	// sort all the candidate points.
+//	sort(candidates.begin(), candidates.end(), ps::Calibrator::sortByLuminance);
+//
+//	// now we pick real candidates.
+//	// TODO: maybe we could calculate the gradients and pick up the point
+//	// that has the biggest gradient and use its value as the threshold.
+//	// but now i just do the easy job.
+//	uchar brightThreshold = 0u;
+//#ifdef USE_RATIO
+//	brightThreshold = candidates[HIGHLIGHT_RATIO * candidates.size()][2];
+//#else
+//	if(candidates.size() <= 2 * HIGHLIGHT_COUNT)
+//	{
+//		brightThreshold = candidates[HIGHLIGHT_RATIO * candidates.size()][2];
+//		cout << " Too few candidates, forced to  pick up ratio points" << endl;
+//	} else {
+//		// pick up the last point that is with such luminance
+//		brightThreshold = candidates[HIGHLIGHT_COUNT][2];
+//	}
+//#endif
+//	cout<< "calculating.."<<endl;
+//	// second pass, collect all points that are bright enough as the real candidates
+//	int Xcount = 0, Ycount = 0;
+//	unsigned i;
+//	Mat debugMask(grayimg.size(), CV_8U, Scalar(0));
+//
+//	for(i = 0; candidates[i][2] >= brightThreshold && i < candidates.size(); i++)
+//	{
+//		debugMask.at<uchar>(candidates[i][0], candidates[i][1]) = 255;
+//		Xcount += candidates[i][0];
+//		Ycount += candidates[i][1];
+//	}
+//
+//	//TODO: calculate the median instead of mean.
+//
+//	if(i == 0 ) {
+//		cout<< "*Error: no candidates detected.."<<endl;
+//	}
+//
+//	highlight[0] = (float)Xcount / i;
+//	highlight[1] = (float)Ycount / i;
+//
+//	char buffer[100];
+//	sprintf(buffer, RESULT_FOLDER"debug_high_mask_%d.jpg", DebugCounter);
+//	imwrite(buffer, debugMask);
+//	return 1;
+//}
 
 /**
  * Optimized version,
@@ -122,14 +122,6 @@ int Calibrator::VcalculateHighligtWithin(const Mat &grayimg, const Mat& highMask
 			// One pass
 			if(highMask.at<uchar>(r, c) == 255)
 			{
-				//				float sum = 0;
-				//				for(int i = r - HIGHLIGHTS_RADIUS/2; i <= r + HIGHLIGHTS_RADIUS/2; i++)
-				//				{
-				//					for(int j = c - HIGHLIGHTS_RADIUS/2; j <= c + HIGHLIGHTS_RADIUS/2; j++)
-				//					{
-				//						sum += grayimg.at<uchar>(i, j);
-				//					}
-				//				}
 				if(grayimg.at<uchar>(r, c) > HIGHLIGHT_THRESHOLD)
 				{
 					xIdx.push_back(r);
@@ -160,7 +152,6 @@ int Calibrator::VcalculateHighligtWithin(const Mat &grayimg, const Mat& highMask
 	cout<< "calculated median of hightlight point sets."<<highlight<<endl;
 	// second pass, collect all points that are bright enough as the real candidates
 
-
 	return 1;
 }
 
@@ -178,15 +169,15 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	// since we have very robust scenario that the dark point would be on the ball
 	// we can pick them up directly.
 	// TODO:: use a color ball to achieve the same thing.
-	dlights.clear();
+	dlights.clear(); // point dimension in matrix order
 	for( int h = height/CenterParam; h < height*(CenterParam-1)/CenterParam; h++)
 	{
 		for( int w = width/CenterParam; w < width*(CenterParam-1)/CenterParam; w++)
 		{
-//			if( img.at<uchar>(h, w) < lthreshold)
-//			{
-//				dlights.push_back( Vec2i(h, w));
-//			}
+			//			if( img.at<uchar>(h, w) < lthreshold)
+			//			{
+			//				dlights.push_back( Vec2i(h, w));
+			//			}
 			int sum = 0;
 			for(int i = h - HIGHLIGHTS_RADIUS/2; i <= h + HIGHLIGHTS_RADIUS/2; i++)
 			{
@@ -223,7 +214,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 
 	findContours( markers, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, Point(0, 0) );
 	cout<< "Contours found." << endl;
-	/// Choose the bigest contour
+	/// Choose the biggest contour
 	unsigned idx = 0, length = 0;
 	for(unsigned i = 0; i < contours.size(); i++)
 	{
@@ -252,7 +243,6 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	drawContours( drawing, contours, (int)idx, Scalar(1), -1, 8, hierarchy, INT_MAX);
 	cout<< "Running watershed segmentation..." <<endl;
 
-#ifndef USEWATERSHED
 	cv::rectangle(drawing,cv::Point(drawing.cols/CenterParam,drawing.rows/CenterParam), cv::Point(drawing.cols/CenterParam*(CenterParam-1), drawing.rows/CenterParam*(CenterParam-1)),cv::Scalar(2),FittedCircleThickness);
 	// use watershed
 	watershed(colorImg, drawing);
@@ -274,14 +264,13 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 
 	sprintf(resbuf,RESULT_FOLDER"watershed%d.jpg", DebugCounter);
 	imwrite(resbuf, wshed);
-#endif
 
 	// after the first segmentation, we calculate our bright center.
 	VcalculateHighligtWithin(img, wshed, highlight);
 
 	// mark the rough highlight point.
-//	cv::rectangle(wshed,cv::Point(highlight[1]-5,highlight[0]-5), cv::Point(highlight[1]+5,highlight[0]+5),cv::Scalar(20),-1);
-//	imwrite(RESULT_FOLDER"watershed_with_highlight.jpg", wshed);
+	//	cv::rectangle(wshed,cv::Point(highlight[1]-5,highlight[0]-5), cv::Point(highlight[1]+5,highlight[0]+5),cv::Scalar(20),-1);
+	//	imwrite(RESULT_FOLDER"watershed_with_highlight.jpg", wshed);
 
 	// pickup the candidate points used to fit the circle
 	vector<Vec2i> candidates;
@@ -325,7 +314,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 
 	imwrite(RESULT_FOLDER"houghCircles.jpg", colorImg);
 #elif defined MSE
-	// use minimum squre error to fit the circle.
+	// use minimum square error to fit the circle.
 	// the benefit is that we will only have one single solution.
 	double points[2 * candidates.size()];
 	for(unsigned i = 0; i < candidates.size(); i++)
@@ -359,7 +348,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	center[1] = output.outputFields[BestFitIO::CircleCentreY];
 	radius = output.outputFields[BestFitIO::CircleRadius];
 
-	cout<<"xCol= "<<center[0] <<" yRow= "<<center[1]<<" radius= " << radius<< endl;
+	cout<<"fitted circle is: row= "<<center[0] <<" col= "<<center[1]<<" radius= " << radius<< endl;
 
 	delete b;
 #endif
@@ -421,6 +410,21 @@ int Calibrator::calculateIncidentDir(const cv::Vec2f center, float radius, const
 	return radius > 0;
 }
 
+int Calibrator::calculateHighlightPos(const cv::Vec2f center, float r, const cv::Vec2f& highlight, Vec3f& dir)
+{
+	cout<< "calculate highlight position from center:"<< center << "with highlight: " << highlight<<endl;
+	// note the coordinate here is for Matrix, not image.
+	float x = highlight[0];
+	float y = highlight[1];
+	float z = sqrt(r*r - (x - center[0]) * (x - center[0]) - (y - center[1]) * (y - center[1])) + r;
+
+	dir[0] = x;
+	dir[1] = y;
+	dir[2] = z;
+
+	return r > 0;
+}
+
 int Calibrator::saveCalibrationData(const string filename, const Vec3f* lightsource)
 {
 	ofstream of(filename.c_str());
@@ -456,7 +460,6 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 {
 	/**
 	 * Version 1.0:
-	 * I will use all four images to do this calibration.
 	 * The circle will be the one that with the smallest fitting error.
 	 * */
 	float ferrors[numImages], minError = FLT_MAX; // note that the information stored in here is in matrix format
@@ -471,19 +474,15 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 		colorImg = imread(buffer);
 		if( colorImg.data == NULL) {
 			cout<< "Failed to load image." <<endl;
+			//TODO: FIXME: Handle exceptions.
 		}
 		Mat grayImg, filImag;
 		cvtColor(colorImg, grayImg,CV_BGR2GRAY);
 		imwrite( RESULT_FOLDER"gray.jpg", grayImg );
 
-		//		cout<<colorImg.type()<<endl;
-
-		// Step 1: preprocessing
-		//FIXME
-		//		filterImage( grayImg, filImag);
 		filImag = grayImg;
 		grayImg.convertTo(filteredimg[f], CV_32F);
-		imwrite( RESULT_FOLDER"blur.jpg", filImag );
+		//		imwrite( RESULT_FOLDER"blur.jpg", filImag );
 
 		// Step 2: locate the ball
 		Vec2f center, highlight;
@@ -495,12 +494,6 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 		{
 			minError = ferrors[f];
 			ball[0] = center[0];
-
-			// FIXME::
-			// FIXME::
-			// FIXME::
-			// FIXME::
-			// FIXME::
 			ball[1] = center[1];
 			ball[2] = radius;
 		}
@@ -509,18 +502,11 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 		// Step 3: calculate the incident direction
 		// TODO: refine the light source properties
 
-		//FIXME exchange coordinates
-		float tp = highlight[1];
-		highlight[1] = highlight[0];
-		highlight[0] = tp;
-
-		tp = center[1];
-		center[1] = center[0];
-		center[0] = tp;
 		calculateIncidentDir(center, radius, highlight, lightsource[f]);
 	}
 
 	cout<<"****Calibrated Real Center is:"<<ball<<endl;
+
 	for( f = 0; f < numImages; f++)
 	{
 		// second pass. filter out the wrong cases
@@ -529,19 +515,14 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 			// refine the highlight point
 			Vec2f highlight;
 			Mat highMask(filteredimg[f].size(), CV_8U, Scalar(0));
-			circle( highMask, Point(filteredimg[f].rows - 1 - ball[1], ball[0]), (int)ball[2] + 1, Scalar(255), -1, CV_AA);
+			circle( highMask, Point(ball[1], ball[0]), (int)ball[2] + 1, Scalar(255), -1, CV_AA);
 			VcalculateHighligtWithin(filteredimg[f], highMask, highlight);
 
-			//FIXME exchange coordinates
-			float tp = highlight[1];
-			highlight[1] = highlight[0];
-			highlight[0] = tp;
-
-			calculateIncidentDir(Vec2f(ball[1], ball[0]), ball[2], highlight, lightsource[f]);
+			calculateIncidentDir(Vec2f(ball[0], ball[1]), ball[2], highlight, lightsource[f]);
 
 			circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,255,0), FittedCircleThickness, CV_AA);
-			circle( filteredimg[f], Point(filteredimg[f].rows - 1 - ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
-			circle( filteredimg[f], Point(filteredimg[f].rows - 1 - ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
+			circle( filteredimg[f], Point(ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
+			circle( filteredimg[f], Point(ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
 			circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
 
 			char resbuf[100];
@@ -555,4 +536,133 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numImages)
 	return 1;
 }
 
+/**
+ * Calibrate the exact location of the light source.
+ * * This function is derived from the below paper.
+ * * This algorithm is used in neal range PS model.
+ * [An improved photometric stereo through distance estimation and light
+	vector optimization from diffused maxima region]*/
+int Calibrator::estimateLightPositions(const string filename, unsigned numImages)
+{
+	float ferrors[numImages], minError = FLT_MAX;
+	// note that the information stored in here is in matrix format
+	Vec3f ball;
+	Mat filteredimg[numImages];
+	unsigned f;
+	char buffer[100];
+
+	// in this function, we only detect one ball at a time!
+	// note that the information we need includes:
+	// 1. Ball center.
+	// 2. Highlight point in each image.
+	// TODO: I have several ideas of dealing with this.
+	// I think it's better to do in the complicate way. Because it allows us to deal with noise better.
+	lightInfo lightVecs[numImages];
+	for(int i = 0; i < 2; i++)
+	{
+		for( f = 0; f < numImages; f++)
+		{
+			// Calibration_Image_i_f
+			sprintf(buffer, DATA_FOLDER"C_IMG_%d_%d.JPG",(i+1), (f+1));
+			// load gray image is enough
+			colorImg = imread(buffer);
+			if( colorImg.data == NULL)
+			{
+				cout<< "Failed to load image." <<endl;
+				//TODO: FIXME: Handle exceptions.
+			}
+			Mat grayImg, filImag;
+			cvtColor(colorImg, grayImg,CV_BGR2GRAY);
+			//			imwrite( RESULT_FOLDER"gray.jpg", grayImg );
+
+			filImag = grayImg;
+			grayImg.convertTo(filteredimg[f], CV_32F);
+			//		imwrite( RESULT_FOLDER"blur.jpg", filImag );
+
+			// Step 2: locate the ball
+			Vec2f center, highlight;
+			float radius;
+
+			ferrors[f] = extractHighLight(filImag, radius, center, highlight);
+
+			if(minError > ferrors[f])
+			{
+				minError = ferrors[f];
+				ball[0] = center[0];
+				ball[1] = center[1];
+				ball[2] = radius;
+			}
+
+			cout<< " highlight point is: " << highlight <<endl;
+			// Step 3: calculate the incident direction
+			// TODO: refine the light source properties
+
+			// TODO: extract the vectors needed for the position extraction.
+			calculateIncidentDir(center, radius, highlight, lightVecs[f].L[i]);
+			calculateHighlightPos(center, radius, highlight, lightVecs[f].P[i]);
+		}
+
+		cout<<"****Calibrated Real Center is:"<<ball<<endl;
+
+		for( f = 0; f < numImages; f++)
+		{
+			// second pass. filter out the wrong cases
+			if(abs(minError - ferrors[f]) > CALIBRATE_FIT_ERROR_DIF_THRESHOLD)
+			{
+				// refine the highlight point
+				Vec2f highlight;
+				Mat highMask(filteredimg[f].size(), CV_8U, Scalar(0));
+				circle( highMask, Point(ball[1], ball[0]), (int)ball[2] + 1, Scalar(255), -1, CV_AA);
+				VcalculateHighligtWithin(filteredimg[f], highMask, highlight);
+
+				calculateIncidentDir(Vec2f(ball[0], ball[1]), ball[2], highlight, lightVecs[f].L[i]);
+				calculateHighlightPos(Vec2f(ball[0], ball[1]), ball[2], highlight, lightVecs[f].P[i]);
+
+				circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,255,0), FittedCircleThickness, CV_AA);
+				circle( filteredimg[f], Point(ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
+				circle( filteredimg[f], Point(ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
+				circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
+
+				char resbuf[100];
+				sprintf(resbuf,RESULT_FOLDER"result%d.jpg", f + 1);
+				imwrite(resbuf, filteredimg[f]);
+			}
+		}
+	}
+
+	Vec3f lightPositions[numImages];
+	estimateLightPosition(lightVecs, lightPositions, numImages);
+	saveCalibrationData(filename, lightPositions);
+
+	return 1;
+}
+
+int Calibrator::estimateLightPosition(lightInfo* lightVecs, Vec3f* lightPositions, int numImages)
+{
+	cout<< "estimating light positions according for each light source."<< endl;
+	for(int i = 0; i < numImages; i++)
+	{
+		// for each source:
+		Vec3f *L = lightVecs[i].L;
+		Vec3f *P = lightVecs[i].P;
+		Vec3f crossVec = L[0].cross(L[1]);
+
+		Vec3f estL1 = (L[1].cross( P[0] - P[1]).dot(crossVec) )
+								/ (crossVec.dot(crossVec));
+		estL1.cross(L[0]);
+		estL1 += P[0];
+
+		Vec3f estL2 = (L[0].cross( P[0] - P[1]).dot( crossVec ) )
+										/ (crossVec.dot(crossVec));
+		estL2.cross(L[1]);
+		estL2 += P[1];
+
+		lightPositions[i] = (estL1 + estL2) / 2;
+
+		float err = sqrt((estL1 - estL2).dot(estL1 - estL2));
+
+		cout<< "light source " <<i <<" estimated, with:"<<endl<<"LP1:"<<estL1<<" LP2:"<<estL2<<" Error:"<<err<<endl;
+	}
+	return 1;
+}
 }
