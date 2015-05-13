@@ -34,6 +34,7 @@ using namespace ps;
 #define	RescaleWidth	"RescaleWidth"
 #define RescaleHeight	"RescaleHeight"
 #define OutputFormat	"OutputFormat"
+#define MaxIteration	"MaxIteration"
 
 #define FitErrorThresh	"FitErrorThresh"
 #define HighlightRadius	"HighlightRadius"
@@ -74,11 +75,13 @@ typedef struct psparam {
 	int rescaleWidth;
 	int rescaleHeight;
 	string outputformat;
+	int maxItr;
 
 	psparam() {
 		dataFolder = NULL;
 		resultFolder = NULL;
 		PSmode = DoInDistantModel;
+		maxItr = 30;
 	}
 } PSParam;
 
@@ -139,8 +142,13 @@ PSParam pkgPSParam(ConfReader &cr) {
 	if(cr.GetParamValue(OutputFormat, psparam.outputformat) == -1)
 		PrntParamError(OutputFormat);
 
+	if(cr.GetParamValue(MaxIteration, buf) == -1)
+		PrntParamError(MaxIteration);
+	psparam.maxItr = atoi(buf.c_str());
+
 	return psparam;
 }
+
 // Note that if you don't use & then the cr here is empty.. Why?
 CalibParam pkgCalibratorParam(ConfReader &cr) {
 	CalibParam cparam;
@@ -202,7 +210,7 @@ int main(int argc, char ** argv)
 {
 	// read configure file:
 	//	ConfReader cr(argv[1]);
-	ConfReader cr("/home/vincy/ps.conf");
+	ConfReader cr("/home/vincy/workspace/3DScanner/ps.conf");
 	PSParam param = pkgPSParam(cr);
 	CalibParam cparam = pkgCalibratorParam(cr);
 
@@ -222,16 +230,12 @@ int main(int argc, char ** argv)
 		Mat colorImg;// cropped;
 		for(int i = 0; i< param.numLights; i++)
 		{
-			sprintf(buffer, "%sImage_%d.JPG", param.dataFolder, (i+1));
+			sprintf(buffer, "%s%s%d.JPG", param.dataFolder, param.dataImgPrefix, (i+1));
 			cout<<buffer<<endl;
 			colorImg = imread(buffer);
-			namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
-				//	imwrite( string(param.dataFolder + "albedo.jpg"), albedo );
 
-//			imshow("Display window", colorImg);
-//			waitKey();
-//			rescaleImage(colorImg, param.rescaleHeight, param.rescaleWidth);
-//			imwrite(buffer, colorImg);
+			rescaleImage(colorImg, param.rescaleHeight, param.rescaleWidth);
+			imwrite(buffer, colorImg);
 
 			//			cropImage(colorImg, cropped, 4);
 			//			imwrite(buffer, cropped);
@@ -312,7 +316,7 @@ int main(int argc, char ** argv)
 		pssolver.depthFromGradient(norm, depthMap, 0);
 		break;
 	case DoInNearRangeModel:	/// use near range PS model.
-		pssolver.applyNearRangePS(depthMap,shadowMask, filteredimg, lightsource, albedo, norm, 1 );
+		pssolver.applyNearRangePS(depthMap,shadowMask, filteredimg, lightsource, albedo, norm, param.maxItr );
 		break;
 	}
 
@@ -323,7 +327,7 @@ int main(int argc, char ** argv)
 
 	//	imshow( "Display window", depthMap );
 	// Step 7: dump results.
-	string output = param.dataFolder + string("output.obj");
+	string output = param.dataFolder + string("output.") + param.outputformat;
 
 	pssolver.dumpResults(param.outputformat, output, depthMap);
 	cout<< "Done..!" <<endl;

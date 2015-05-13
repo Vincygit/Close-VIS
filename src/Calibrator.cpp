@@ -107,8 +107,7 @@ Calibrator::~Calibrator() {
  * */
 int Calibrator::VcalculateHighligtWithin(const Mat &grayimg, const Mat& highMask, Vec2f & highlight)
 {
-	cout<< "V->calculateHighligtWithin.."<<endl;
-	Vector<Vec3i> candidates;
+	//	cout<< "V->calculateHighligtWithin.."<<endl;
 	vector<int> xIdx, yIdx;
 	//	cout<<"rows:"<<highMask.rows<<endl;
 	for(int r = 0; r < highMask.rows; r++)
@@ -122,20 +121,19 @@ int Calibrator::VcalculateHighligtWithin(const Mat &grayimg, const Mat& highMask
 				{
 					xIdx.push_back(r);
 					yIdx.push_back(c);
-					candidates.push_back(Vec3i(r, c, grayimg.at<uchar>(r, c)));
 				}
 			}
 		}
 	}
 
-	if(candidates.size() <= 1)
+	if(xIdx.size() <= 1)
 	{
 		cout<<"ERRORROORR-> Please decrease the highlight threshold"<<endl;
 		return 0;
 	}
 
 	// sort all the candidate points.
-	sort(candidates.begin(), candidates.end(), ps::Calibrator::sortByLuminance);
+	//	sort(candidates.begin(), candidates.end(), ps::Calibrator::sortByLuminance);
 	sort(xIdx.begin(),xIdx.end());
 	sort(yIdx.begin(),yIdx.end());
 
@@ -209,7 +207,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	vector<Vec4i> hierarchy;
 
 	findContours( markers, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_NONE, Point(0, 0) );
-	cout<< "Contours found." << endl;
+	//	cout<< "Contours found." << endl;
 	/// Choose the biggest contour
 	unsigned idx = 0, length = 0;
 	for(unsigned i = 0; i < contours.size(); i++)
@@ -236,10 +234,13 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	Mat drawing = Mat::zeros( markers.size(), CV_32S );
 	drawing = Scalar::all(0);
 	/// add outline marker
-	drawContours( drawing, contours, (int)idx, Scalar(1), -1, 8, hierarchy, INT_MAX);
-	cout<< "Running watershed segmentation..." <<endl;
+	//	int a = DebugCounter == 4? 100 : 1;
+	drawContours( drawing, contours, (int)1, Scalar(1), -1, 8, hierarchy, INT_MAX);
+	cout<< "Running watershed segmentation..." << idx <<endl;
 
 	cv::rectangle(drawing,cv::Point(drawing.cols/param.centerParam,drawing.rows/param.centerParam), cv::Point(drawing.cols/param.centerParam*(param.centerParam-1), drawing.rows/param.centerParam*(param.centerParam-1)),cv::Scalar(2),FittedCircleThickness);
+
+	//	imwrite("/home/vincy/vincy.jpg", drawing);
 	// use watershed
 	watershed(colorImg, drawing);
 
@@ -262,8 +263,10 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	imwrite(resbuf, wshed);
 
 	// after the first segmentation, we calculate our bright center.
-	VcalculateHighligtWithin(img, wshed, highlight);
-
+	if (VcalculateHighligtWithin(img, wshed, highlight) == 0) {
+		DebugCounter++;
+		return -1;
+	}
 	// mark the rough highlight point.
 	//	cv::rectangle(wshed,cv::Point(highlight[1]-5,highlight[0]-5), cv::Point(highlight[1]+5,highlight[0]+5),cv::Scalar(20),-1);
 	//	imwrite(RESULT_FOLDER"watershed_with_highlight.jpg", wshed);
@@ -362,7 +365,7 @@ float Calibrator::extractHighLight( const Mat &img, float &radius, Vec2f& center
 	sprintf(resbuf, "%sresult%d.jpg", param.resultFolder, DebugCounter++);
 	imwrite(resbuf, colorImg);
 
-	cout<< "Circle fitted, " << endl;
+	//	cout<< "Circle fitted, " << endl;
 
 	return fittingError;
 }
@@ -408,7 +411,6 @@ int Calibrator::calculateIncidentDir(const cv::Vec2f center, float radius, const
 
 int Calibrator::calculateHighlightPos(const cv::Vec2f center, float r, const cv::Vec2f& highlight, Vec3f& dir)
 {
-	cout<< "calculate highlight position from center:"<< center << "with highlight: " << highlight<<endl;
 	// note the coordinate here is for Matrix, not image.
 	float x = highlight[0];
 	float y = highlight[1];
@@ -418,6 +420,7 @@ int Calibrator::calculateHighlightPos(const cv::Vec2f center, float r, const cv:
 	dir[1] = y;
 	dir[2] = z;
 
+	cout<< "@calculated highlight position is:"<< dir <<endl;
 	return r > 0;
 }
 
@@ -488,6 +491,11 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numLights)
 
 		ferrors[f] = extractHighLight(filImag, radius, center, highlight);
 
+		if(ferrors[f] == -1) {
+			ferrors[f] += 100000;
+			continue;
+		}
+
 		if(minError > ferrors[f])
 		{
 			minError = ferrors[f];
@@ -503,29 +511,35 @@ int Calibrator::calibrateLightsource(const string filename, unsigned numLights)
 		calculateIncidentDir(center, radius, highlight, lightsource[f]);
 	}
 
-	cout<<"****Calibrated Real Center is:"<<ball<<endl;
+	cout<<"****Calibrated Real Center is:"<<ball<<endl<<endl;
 
 	for( f = 0; f < numLights; f++)
 	{
 		// second pass. filter out the wrong cases
 		if(abs(minError - ferrors[f]) > param.fitErrorThreshold)
 		{
+			cout << "Re-evaluating image "<< (f+1) << " .."<<endl;
 			// refine the highlight point
 			Vec2f highlight;
 			Mat highMask(filteredimg[f].size(), CV_8U, Scalar(0));
 			circle( highMask, Point(ball[1], ball[0]), (int)ball[2] + 1, Scalar(255), -1, CV_AA);
-			VcalculateHighligtWithin(filteredimg[f], highMask, highlight);
+
+			Mat ucharMat(filteredimg[f].size(), CV_8U, Scalar(0));
+			filteredimg[f].convertTo(ucharMat, CV_8U);
+			VcalculateHighligtWithin(ucharMat, highMask, highlight);
 
 			calculateIncidentDir(Vec2f(ball[0], ball[1]), ball[2], highlight, lightsource[f]);
 
-			circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,255,0), FittedCircleThickness, CV_AA);
-			circle( filteredimg[f], Point(ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
-			circle( filteredimg[f], Point(ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
-			circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
+			Mat colorMat(filteredimg[f].cols,filteredimg[f].rows, CV_8UC3, Scalar(0));
+
+			cvtColor(ucharMat, colorMat, CV_GRAY2RGB);
+			circle( colorMat, Point(ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
+			circle( colorMat, Point(ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
+			circle( colorMat, Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
 
 			char resbuf[100];
 			sprintf(resbuf, "%sresult%d.jpg", param.resultFolder, f + 1);
-			imwrite(resbuf, filteredimg[f]);
+			imwrite(resbuf, colorMat);
 		}
 	}
 
@@ -607,23 +621,28 @@ int Calibrator::estimateLightPositions(const string filename, unsigned numLights
 			// second pass. filter out the wrong cases
 			if(abs(minError - ferrors[f]) > param.fitErrorThreshold)
 			{
+				cout << "Re-evaluating image "<< (f+1) << " .."<<endl;
 				// refine the highlight point
 				Vec2f highlight;
 				Mat highMask(filteredimg[f].size(), CV_8U, Scalar(0));
-				circle( highMask, Point(ball[1], ball[0]), (int)ball[2] + 1, Scalar(255), -1, CV_AA);
 				VcalculateHighligtWithin(filteredimg[f], highMask, highlight);
+
+				Mat ucharMat(filteredimg[f].size(), CV_8U, Scalar(0));
+				filteredimg[f].convertTo(ucharMat, CV_8U);
+				VcalculateHighligtWithin(ucharMat, highMask, highlight);
 
 				calculateIncidentDir(Vec2f(ball[0], ball[1]), ball[2], highlight, lightVecs[f].L[i]);
 				calculateHighlightPos(Vec2f(ball[0], ball[1]), ball[2], highlight, lightVecs[f].P[i]);
 
-				circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,255,0), FittedCircleThickness, CV_AA);
-				circle( filteredimg[f], Point(ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
-				circle( filteredimg[f], Point(ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
-				circle( filteredimg[f], Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
+				Mat colorMat;
+				cvtColor(ucharMat, colorMat, CV_GRAY2RGB);
+				circle( colorMat, Point(ball[1], ball[0]), (int)ball[2], Scalar(0,0,255), FittedCircleThickness, CV_AA);
+				circle( colorMat, Point(ball[1], ball[0]), 3, Scalar(0,255,0), FittedCircleThickness, CV_AA);
+				circle( colorMat, Point(highlight[1], highlight[0]), 3, Scalar(255,0,0), FittedCircleThickness, CV_AA);
 
 				char resbuf[100];
 				sprintf(resbuf, "%sresult%d.jpg", param.resultFolder, f + 1);
-				imwrite(resbuf, filteredimg[f]);
+				imwrite(resbuf, colorMat);
 			}
 		}
 	}
@@ -646,19 +665,19 @@ int Calibrator::estimateLightPosition(lightInfo* lightVecs, Vec3f* lightPosition
 		Vec3f crossVec = L[0].cross(L[1]);
 
 		Vec3f estL1 = (L[1].cross( P[0] - P[1]).dot(crossVec) )
-								/ (crossVec.dot(crossVec));
+												/ (crossVec.dot(crossVec));
 		estL1.cross(L[0]);
 		estL1 += P[0];
 
 		Vec3f estL2 = (L[0].cross( P[0] - P[1]).dot( crossVec ) )
-										/ (crossVec.dot(crossVec));
+														/ (crossVec.dot(crossVec));
 		estL2.cross(L[1]);
 		estL2 += P[1];
 
 		lightPositions[i] = (estL1 + estL2) / 2;
 
 		float err = sqrt((estL1 - estL2).dot(estL1 - estL2));
-
+		cout<< "#Highlight Point 1 is :" << P[0] << "Highlight Point 2:"<< P[1] <<endl;
 		cout<< "light source " <<i <<" estimated, with:"<<endl<<"LP1:"<<estL1<<" LP2:"<<estL2<<" Error:"<<err<<endl;
 	}
 	return 1;

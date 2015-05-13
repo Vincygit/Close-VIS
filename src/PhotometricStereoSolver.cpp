@@ -213,7 +213,7 @@ int PhotometricStereoSolver::applyNearRangePS(cv::Mat& depthMap, const cv::Mat* 
 	Mat lightingMat(numImages, 3, CV_32F, Scalar(0));
 
 	// cache the previous calculated depth so as to calculate the error between two rounds.
-	Mat preDepth;
+	Mat preDepth(matRows, matCols, CV_32F, Scalar::all(0));
 
 	while(iterError > MIN_ERROR && round_counter++ < Max_iter)
 	{
@@ -246,21 +246,33 @@ int PhotometricStereoSolver::applyNearRangePS(cv::Mat& depthMap, const cv::Mat* 
 					mag += pxlNorm.at<float>(c) *pxlNorm.at<float>(c);
 				}
 
+				//DEBUG
+				if(mag == 0)
+					cout<<"why is it zero?"<<endl;
+
 				albedo.at<float>(h, w) = sqrt(mag);
 				for(int c = 0; c < 3; c++) {
 					norm.at<Vec3f>(h, w)[c] = pxlNorm.at<float>(c) / albedo.at<float>(h, w);
 				}
+				//DEBUG
+//				if(round_counter == 2)
+//					cout<<"Hey!, can you see me 4 ?"<<endl;
 
 				// calculate the depth error.
-				if(round_counter > 1)
+				if(round_counter > 1) {
+//					cout<<preDepth.at<float>(0, 0)<<endl;
 					iterError += abs(depthMap.at<float>(h, w) - preDepth.at<float>(h, w));
+				}
 			}
 		}
 		iterError /= matRows * matCols;
 		cout << "**Iteration: "<<round_counter<<" with mean abs error:" << iterError <<endl;
+		cout<<preDepth.at<float>(0, 0)<<endl;
 
 		if(round_counter > 1)
 			depthMap.copyTo(preDepth);
+
+		cout<<preDepth.at<float>(0, 0)<<endl;
 
 		depthFromGradient( norm, depthMap, 0);
 	}
@@ -493,7 +505,6 @@ int PhotometricStereoSolver::depthFromGradient( const cv::Mat norm, cv::Mat& dep
 		break;
 
 	default:
-		// use Ying Xiong's method from Matlab, this method may introduce curvature.
 		depthMap = performFCAlgo(pMat,qMat);
 		break;
 	}
@@ -551,12 +562,12 @@ int PhotometricStereoSolver::dumpResults(string format,const string filename, co
 			{
 				// obj format
 				of << "v "<<(h + 1) << " " << (w + 1) << " " << scaledMap.at<float>(h, w) << "\n";
-			} else if(format == "matrix") {
+			} else if(format == "asc") {
 				of << depthMap.at<float>(h, w)<<" ";
 			}
 		}
 
-		if(format == "matrix")
+		if(format == "asc")
 		{
 			of  << "\n";
 		}
