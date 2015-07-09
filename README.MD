@@ -1,5 +1,6 @@
 ***TODO:FIXME:***
-1. There is a bug when you do the auto calibration.
-Picking up the countour with the biggest area after calling findCountour is not proper. Need to find a better way to achieve this.
-2. For the near range model, the calibration method is wrong, NOT reliable at all!. Need to find a better way to achieve this.
-
+1. This project aims at providing a low cost approach to scanning 3D models used for 3D printing.
+2. Photometric Stereo is applied with both near range model and the distant model.
+3. This project is developed with GCC compiler and Eclipse.
+4. For more information, refer the to General Guide
+0. Some algorithm implementations are ignored in this git version.
